@@ -5,7 +5,8 @@ use std::{
 };
 
 pub fn redirect_uri_web_server(spotify_oauth: &mut SpotifyOAuth, port: u16) -> Result<String, ()> {
-  let listener = TcpListener::bind(format!("127.0.0.1:{}", port));
+  // let listener = TcpListener::bind(format!("127.0.0.1:{}", port));
+  let listener = TcpListener::bind(format!("0.0.0.0:{}", port));
 
   match listener {
     Ok(listener) => {
