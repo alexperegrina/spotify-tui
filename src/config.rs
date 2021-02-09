@@ -8,6 +8,8 @@ use std::{
 };
 
 const DEFAULT_PORT: u16 = 8888;
+const DEFAULT_HOST: &str = "localhost";
+const DEFAULT_PROTOCOL: &str = "http";
 const FILE_NAME: &str = "client.yml";
 const CONFIG_DIR: &str = ".config";
 const APP_CONFIG_DIR: &str = "spotify-tui";
@@ -20,6 +22,8 @@ pub struct ClientConfig {
   pub device_id: Option<String>,
   // FIXME: port should be defined in `user_config` not in here
   pub port: Option<u16>,
+  pub host: Option<String>,
+  pub protocol: Option<String>,
 }
 
 pub struct ConfigPaths {
@@ -34,15 +38,25 @@ impl ClientConfig {
       client_secret: "".to_string(),
       device_id: None,
       port: None,
+      host: None,
+      protocol: None,
     }
   }
 
   pub fn get_redirect_uri(&self) -> String {
-    format!("http://localhost:{}/callback", self.get_port())
+    format!("{}://{}:{}/callback", self.get_protocol(), self.get_host(), self.get_port())
   }
 
   pub fn get_port(&self) -> u16 {
     self.port.unwrap_or(DEFAULT_PORT)
+  }
+
+  pub fn get_host(&self) -> String {
+      self.host.as_deref().unwrap_or(DEFAULT_HOST).to_string()
+    }
+
+  pub fn get_protocol(&self) -> String {
+    self.protocol.as_deref().unwrap_or(DEFAULT_PROTOCOL).to_string()
   }
 
   pub fn get_or_build_paths(&self) -> Result<ConfigPaths> {
@@ -98,6 +112,8 @@ impl ClientConfig {
       self.client_secret = config_yml.client_secret;
       self.device_id = config_yml.device_id;
       self.port = config_yml.port;
+      self.host = config_yml.host;
+      self.protocol = config_yml.protocol;
 
       Ok(())
     } else {
@@ -115,7 +131,9 @@ impl ClientConfig {
         "Click `Create a Client ID` and create an app",
         "Now click `Edit Settings`",
         &format!(
-          "Add `http://localhost:{}/callback` to the Redirect URIs",
+          "Add `{}://{}:{}/callback` to the Redirect URIs",
+          DEFAULT_PROTOCOL,
+          DEFAULT_HOST,
           DEFAULT_PORT
         ),
         "You are now ready to authenticate with Spotify!",
@@ -135,11 +153,23 @@ impl ClientConfig {
       stdin().read_line(&mut port)?;
       let port = port.trim().parse::<u16>().unwrap_or(DEFAULT_PORT);
 
+      let mut host = String::new();
+      println!("\nEnter host of redirect uri (default {}): ", DEFAULT_HOST);
+      stdin().read_line(&mut host)?;
+      let host = host.trim().parse::<String>().unwrap_or(DEFAULT_HOST.parse::<String>()?);
+
+      let mut protocol = String::new();
+      println!("\nEnter protocol of redirect uri (default {}): ", DEFAULT_PROTOCOL);
+      stdin().read_line(&mut protocol)?;
+      let protocol = protocol.trim().parse::<String>().unwrap_or(DEFAULT_PROTOCOL.parse::<String>()?);
+
       let config_yml = ClientConfig {
         client_id,
         client_secret,
         device_id: None,
         port: Some(port),
+        host: Some(host),
+        protocol: Some(protocol),
       };
 
       let content_yml = serde_yaml::to_string(&config_yml)?;
@@ -151,6 +181,8 @@ impl ClientConfig {
       self.client_secret = config_yml.client_secret;
       self.device_id = config_yml.device_id;
       self.port = config_yml.port;
+      self.host = config_yml.host;
+      self.protocol = config_yml.protocol;
 
       Ok(())
     }
